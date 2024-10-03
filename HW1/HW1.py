@@ -16,7 +16,6 @@ def Q1():
         if abs(fc) < 1e-6:
             break
     A1 = x[1:]
-    np.save("A1.npy", A1)
 
     #Bisection
     left = -.7
@@ -33,11 +32,9 @@ def Q1():
         if abs(fc) < 1e-6:
             break
     A2 = midpoints
-    np.save("A2.npy", A2)
 
     #A3 creation
     A3 = np.array([len(A1), len(A2)])
-    np.save("A3.npy", A3)
 
 
 def Q2():
@@ -50,31 +47,22 @@ def Q2():
     z = np.matrix([[1], [2], [-1]])
 
     A4 = A + B
-    np.save("A4.npy", A4)
 
     A5 = 3*x - 4*y
-    np.save("A5.npy", A5)
 
     A6 = A * x
-    np.save("A6.npy", A6)
 
     A7 = B*(x - y)
-    np.save("A7.npy", A7)
 
     A8 = D*x
-    np.save("A8.npy", A8)
 
     A9 = D*y + z
-    np.save("A9.npy", A9)
 
     A10 = A*B
-    np.save("A10.npy", A10)
 
     A11 = B*C
-    np.save("A11.npy", A11)
 
     A12 = C*D
-    np.save("A12.npy", A12)
 
 Q1()
 Q2()
