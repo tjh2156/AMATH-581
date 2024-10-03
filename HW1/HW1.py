@@ -12,11 +12,10 @@ def Q1():
         fcPrime = np.sin(3*x[i]) + 3*x[i]*np.cos(3*x[i]) - np.exp(x[i])
         xNext = x[i] - fc/fcPrime
         x = np.append(x, xNext)
-        print()
 
         if abs(fc) < 1e-6:
             break
-    A1 = x
+    A1 = x[1:]
     np.save("A1.npy", A1)
 
     #Bisection
