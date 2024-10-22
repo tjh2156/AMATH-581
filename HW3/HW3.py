@@ -3,64 +3,44 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 def partB():
-    def q(x, epsilon):
-        return x**2 - epsilon
-
-    def leftY(L, epsilon):
-        return np.exp(-1*L*np.sqrt(L**2 - epsilon))
-
-    def rightY(L, epsilon):
-        return np.exp(-1*L*np.sqrt(L**2 - epsilon))
+    def q(x):
+        return x**2
 
     L = 4
     dx = .1
     xspan = np.arange(-1*L, L+dx, dx)
-    epsilon = 0
     epsilons = []
     eigenfunctions = []
     N = len(xspan)
 
-    A = np.matrix(np.zeros((N-2, N-2)))
-    b = np.matrix((np.zeros((N-2, 1))))
+    A = np.matrix(np.zeros((N, N)))
 
-    for n in range(5):
-        dEpsilon = .1
-        for j in range(1000):
-            #set up b
-            b[0] = leftY(L, epsilon)
-            b[-1] = rightY(L, epsilon)
+    for i in range(1,N - 1):
+        A[i,i] = 2/dx**2 + q(xspan[i])
+        A[i,i + 1] = -1/(dx**2)
+        A[i,i - 1] = -1/(dx**2)
 
-            #set up A
-            for i in range(len(A)):
-                A[i,i] = 2 + dx**2 * q(xspan[i+1], epsilon)
-                if i >= 1:
-                    A[i, i-1] = -1
-                if i < N-3:
-                    A[i, i+1] = -1
+    A[0,0] = 3
+    A[0,1] = -4
+    A[0,2] = 1
 
-            #Solve Ax=b
-            ysol = np.linalg.solve(A, b)
+    A[-1,-1] = -3
+    A[-1, -2] = 4
+    A[-1, -3] = -1
 
-            #BCs
-            derivativeLeft = (-3*leftY(L, epsilon) + 4*ysol[0] - ysol[1])/(2*dx)
-            derivativeRight = (3*rightY(L, epsilon) - 4*ysol[-1] + ysol[-2])/(2*dx)
-            if abs(derivativeLeft) < 1e-6:
-                print("found it ", j)
-                break
-            if (-1) ** (n+1) * (derivativeLeft) < 0:
-                epsilon += dEpsilon
-            else:
-                epsilon -= dEpsilon
-                dEpsilon /= 2
-        print(f"final j = {j}   epsilon num = {n}     dEpsilon = {dEpsilon}     epsilon = {epsilon}")
-        ysol = np.squeeze(np.asarray(ysol))
-        ysol = np.array([leftY(L, epsilon), *ysol, rightY(L, epsilon)])
-        normalizedY = ysol/np.sqrt(np.trapezoid(ysol**2, dx=dx))
-        plt.plot(xspan, normalizedY)
-        epsilons.append(epsilon)
-        eigenfunctions.append(normalizedY)
-        epsilon += 1
+    eigenvalues, eigenvectors = np.linalg.eigh(A)
+    
+    for i in range(len(eigenvalues)): #find first positive eigenvalue
+        if eigenvalues[i] > 0:
+            break
 
+    epsilons = eigenvalues[i:i+5] #get first 5 positive eigenvalues
+    for j in range(i, i+6):
+        arrEigenvector = np.squeeze(np.asarray(eigenvectors[:,j]))
+        normedEigenfunction = eigenvectors[:,j]/np.sqrt(np.trapezoid(arrEigenvector**2))
+        plt.plot(xspan, normedEigenfunction)
+        eigenfunctions.append(abs(normedEigenfunction))
+    
     plt.legend(epsilons)
     plt.xlabel('x')
     plt.ylabel('y')
@@ -114,4 +94,4 @@ def partC():
     plt.show()
 
 
-partC()
+partB()
