@@ -16,17 +16,17 @@ def partB():
     A = np.matrix(np.zeros((N, N)))
 
     for i in range(1,N - 1):
-        A[i,i] = 2/dx**2 + q(xspan[i])
+        A[i,i] = 2/(dx**2) + q(xspan[i])
         A[i,i + 1] = -1/(dx**2)
         A[i,i - 1] = -1/(dx**2)
 
-    A[0,0] = 3
-    A[0,1] = -4
-    A[0,2] = 1
+    A[0,0] = 3/(dx**2)
+    A[0,1] = -4/(dx**2)
+    A[0,2] = 1/(dx**2)
 
-    A[-1,-1] = -3
-    A[-1, -2] = 4
-    A[-1, -3] = -1
+    A[-1,-1] = -3/(dx**2)
+    A[-1, -2] = 4/(dx**2)
+    A[-1, -3] = -1/(dx**2)
 
     eigenvalues, eigenvectors = np.linalg.eigh(A)
     
@@ -35,9 +35,11 @@ def partB():
             break
 
     epsilons = eigenvalues[i:i+5] #get first 5 positive eigenvalues
-    for j in range(i, i+6):
-        arrEigenvector = np.squeeze(np.asarray(eigenvectors[:,j]))
-        normedEigenfunction = eigenvectors[:,j]/np.sqrt(np.trapezoid(arrEigenvector**2))
+    for count in range(0, 5):
+        arrEigenvector = np.squeeze(np.asarray(eigenvectors[:,i+count]))
+        normedEigenfunction = eigenvectors[:,i+count]/np.sqrt(np.trapezoid(arrEigenvector**2, dx=dx))
+        if count == 1 or count == 2:
+            normedEigenfunction = -1*normedEigenfunction
         plt.plot(xspan, normedEigenfunction)
         eigenfunctions.append(abs(normedEigenfunction))
     
