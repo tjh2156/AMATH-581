@@ -121,21 +121,20 @@ def partB():
         arrEigenvector = np.array([leftBoundary, *arrEigenvector, rightBoundary])
 
         normedEigenfunction = arrEigenvector/np.sqrt(np.trapezoid(arrEigenvector**2, dx=dx))
-        plt.plot(x, abs(normedEigenfunction))
+        # plt.plot(x, abs(normedEigenfunction))
         A3.append(abs(normedEigenfunction))
 
     A3 = np.array(A3).T
 
-    plt.legend(np.asarray(D5, float))
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.title('Solution Plot')
-    plt.grid(True)
+    # plt.legend(np.asarray(D5, float))
+    # plt.xlabel('x')
+    # plt.ylabel('y')
+    # plt.title('Part B')
+    # plt.grid(True)
     # plt.show()
 
     return A3, A4
 
-
 def partC(L, dx, gammas):
     def shoot(x, y, epsilon, gamma):
         return [y[1], y[0]*(gamma*abs(y[0])**2 + x**2 - epsilon)]
@@ -150,88 +149,13 @@ def partC(L, dx, gammas):
     x = np.arange(xspan[0], xspan[1], dx)  # grid for odeint
     for gamma in gammas:
         epsilon = 0.1
+        amplitude = 1e-4
         for n in range(2): #find first 2 eigenfunctions/values
-            amplitude = 1e-3
-            dAmplitude = 0.1
-            for _ in range(100): #iterating on amplitude
+            
+            dAmplitude = 0.01
+            for j in range(100): #iterating on amplitude
                 dEpsilon = 0.2
-                for _ in range(1000): #iterating on epsilon
-                    y0 = [amplitude, amplitude*np.sqrt(L**2 - epsilon)]  # initial condition
-
-                    sol = solve_ivp(shoot, xspan, y0, args=(epsilon, gamma), t_eval=x)  # solve ODE
-                    ysol = sol.y
-                    
-                    if abs(ysol[1, -1] + np.sqrt(L**2 - epsilon) * ysol[0, -1]) < 1e-6:  # check convergence
-                        break
-                    
-                    if (-1) ** (n+1) * (ysol[1, -1] + (np.sqrt(L**2 - epsilon) * ysol[0,-1])) < 0:
-                        epsilon += dEpsilon
-                    else:
-                        epsilon -= dEpsilon
-                        dEpsilon /= 2
-                area = integrate.simpson(ysol[0,:], x=x, dx=.1)
-                if area - 1 < 1e-6:
-                    break
-                if area < 1:
-                    amplitude += dAmplitude
-                elif area > 1:
-                    amplitude -= dAmplitude/2
-                    dAmplitude /= 2
-            normedEigenfunction = ysol[0, :]/np.sqrt(np.trapezoid(ysol[0,:]**2, x))
-            if gamma > 0:
-                positiveGammaEigenfunctions.append(abs(normedEigenfunction))
-                positiveGammaEpsilons.append(epsilon)
-            else:
-                negativeGammaEigenfunctions.append(abs(normedEigenfunction))
-                negativeGammaEpsilons.append(epsilon)
-            plt.plot(x, abs(normedEigenfunction))
-            epsilon += .1
-
-    A5 = np.matrix(np.transpose(positiveGammaEigenfunctions))
-    A6 = np.array(positiveGammaEpsilons)
-
-    A7 = np.matrix(np.transpose(negativeGammaEigenfunctions))
-    A8 = np.array(negativeGammaEpsilons)
-
-    plt.figure(1)
-    plt.plot(x, A5)
-    plt.legend(A6)
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.title('Positive Gamma')
-    plt.grid(True)
-
-    plt.figure(2)
-    plt.plot(x, A7)
-    plt.legend(A8)
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.title('Negative Gamma')
-    plt.grid(True)
-
-    # plt.show()
-
-    return A5, A6, A7, A8
-
-def partC(L, dx, gammas):
-    def shoot(x, y, epsilon, gamma):
-        return [y[1], y[0]*(gamma*abs(y[0])**2 + x**2 - epsilon)]
-
-    xspan = [-L, L+dx]  # x range
-    # initial derivative value
-    # step size for derivative adjustment
-    positiveGammaEpsilons = []
-    negativeGammaEpsilons = []
-    positiveGammaEigenfunctions = []
-    negativeGammaEigenfunctions = []
-    x = np.arange(xspan[0], xspan[1], dx)  # grid for odeint
-    for gamma in gammas:
-        epsilon = 0.1
-        for n in range(2): #find first 2 eigenfunctions/values
-            amplitude = 1e-3
-            dAmplitude = 0.1
-            for _ in range(100): #iterating on amplitude
-                dEpsilon = 0.2
+                foundK = False
                 for _ in range(1000): #iterating on epsilon
                     y0 = [amplitude, amplitude*np.sqrt(L**2 - epsilon)]  # initial condition
 
@@ -239,6 +163,7 @@ def partC(L, dx, gammas):
                     ysol = sol.y
                     
                     if abs(ysol[1, -1] + np.sqrt(L**2 - epsilon) * ysol[0, -1]) < 1e-4:  # check convergence
+                        foundK = True
                         break
                     
                     if (-1) ** (n+1) * (ysol[1, -1] + (np.sqrt(L**2 - epsilon) * ysol[0,-1])) < 0:
@@ -246,8 +171,9 @@ def partC(L, dx, gammas):
                     else:
                         epsilon -= dEpsilon
                         dEpsilon /= 2
-                area = np.trapezoid(ysol[0,:], x=x, dx=.1)
-                if area - 1 < 1e-6:
+                area = np.trapezoid(ysol[0,:]**2, x=x, dx=.1)
+                if abs(area - 1) < 1e-4:
+                    # print (f"gamma: {gamma}  mode: {n}  got j! {j}. found k? {foundK}  epsilon: {epsilon}")
                     break
                 if area < 1:
                     amplitude += dAmplitude
@@ -261,7 +187,6 @@ def partC(L, dx, gammas):
             else:
                 negativeGammaEigenfunctions.append(abs(normedEigenfunction))
                 negativeGammaEpsilons.append(epsilon)
-            plt.plot(x, abs(normedEigenfunction))
             epsilon += .1
 
     A5 = np.matrix(np.transpose(positiveGammaEigenfunctions))
@@ -286,7 +211,7 @@ def partC(L, dx, gammas):
     plt.title('Negative Gamma')
     plt.grid(True)
 
-    # plt.show()
+    plt.show(block=False)
 
     return A5, A6, A7, A8
 
@@ -323,42 +248,50 @@ def partD(L, tolerances):
         bdfT = bdfsol.t
         bdfStepSize = np.mean(np.diff(bdfT))
         bdfStepSizes.append(bdfStepSize)
-        
+    
+    plt.figure(3)
     plt.plot(rk45StepSizes, tolerances)
     plt.plot(rk23StepSizes, tolerances)
     plt.plot(radauStepSizes, tolerances)
     plt.plot(bdfStepSizes, tolerances)
     plt.yscale('log')
     plt.xscale('log')
-    # plt.show()
+    plt.title("Part D")
+    plt.show()
 
-    rk45StepSizes = np.log10(rk45StepSizes)
-    rk23StepSizes = np.log10(rk23StepSizes)
-    radauStepSizes = np.log10(radauStepSizes)
-    bdfStepSizes = np.log10(bdfStepSizes)
+    rk45StepSizes = np.log(rk45StepSizes)
+    rk23StepSizes = np.log(rk23StepSizes)
+    radauStepSizes = np.log(radauStepSizes)
+    bdfStepSizes = np.log(bdfStepSizes)
 
-    tolerances = np.log10(tolerances)
+    tolerances = np.log(tolerances)
 
-    rk45Slope = np.polyfit(tolerances, rk45StepSizes, 1)[0]
-    rk23Slope = np.polyfit(tolerances, rk23StepSizes, 1)[0]
-    radauSlope = np.polyfit(tolerances, radauStepSizes, 1)[0]
-    bdfSlope = np.polyfit(tolerances, bdfStepSizes, 1)[0]
+    rk45Slope = np.polyfit(rk45StepSizes, tolerances, 1)[0]
+    rk23Slope = np.polyfit(rk23StepSizes, tolerances, 1)[0]
+    radauSlope = np.polyfit(radauStepSizes, tolerances, 1)[0]
+    bdfSlope = np.polyfit(bdfStepSizes, tolerances, 1)[0]
 
     A9 = np.array([rk45Slope, rk23Slope, radauSlope, bdfSlope])
     return A9
     
 
 def partE(A1, A2, A3, A4):
-    def expon(x):
-        return np.exp(-1/2* x**2)
-    xspan = np.arange(-4, 4.1, .1)
-    exact_vecs = np.zeros((81, 81))
+    def factorial(n):
+        if n <= 1:
+            return 1
+        return n * factorial(n-1)
+    x = np.arange(-4, 4.1, .1)
+    herm = np.ones((81, 5))
 
-    exact_vecs[:,0] = np.array((np.pi ** (-1 / 4)) * expon(xspan)).T
-    exact_vecs[:,1] = np.array(np.sqrt(2) * (np.pi ** (-1 / 4)) * xspan * expon(xspan)).T
-    exact_vecs[:,2] = np.array(1 / (np.sqrt(2) * (np.pi ** (-1 / 4))) * (2 * (xspan ** 2) - 1) * expon(xspan)).T
-    exact_vecs[:,3] = np.array(1 / (np.sqrt(3) * (np.pi ** (-1 / 4))) * (2 * (xspan ** 3) - 3 * xspan) * expon(xspan)).T
-    exact_vecs[:,4] = np.array(1 / (2 * np.sqrt(6) * (np.pi ** (-1 / 4))) * (4 * (xspan ** 4) - 12 * (xspan ** 2) + 3) * expon(xspan)).T
+    herm[:, 1] = 2*x
+    herm[:, 2] = 4*x**2 - 2
+    herm[:, 3] = 8*x**3 - 12*x
+    herm[:, 4] = 16*x**4 - 48*x**2 + 12
+
+    exact_vecs = np.zeros((81, 5))
+
+    for i in range(5):
+        exact_vecs[:,i] = (2**i * factorial(i) * np.sqrt(np.pi))**(-1/2) * np.exp(-x**2/2) * herm[:,i]
 
     partADifferenceFunctionNorms = []
     partBDifferenceFunctionNorms = []
@@ -367,13 +300,13 @@ def partE(A1, A2, A3, A4):
 
     for col in range(5):
         partAFunctionDiff = A1[:,col] - abs(exact_vecs[:,col])
-        partADifferenceFunctionNorms.append(np.trapezoid(partAFunctionDiff**2, xspan))
+        partADifferenceFunctionNorms.append(np.trapezoid(partAFunctionDiff**2, x))
 
         partAValueDiff = 100 * abs(A2[col] - (2*col + 1))/(2*col + 1)
         partADifferenceValues.append(partAValueDiff)
 
         partBFunctionDiff = A3[:,col] - abs(exact_vecs[:,col])
-        partBDifferenceFunctionNorms.append(np.trapezoid(partBFunctionDiff**2, xspan))
+        partBDifferenceFunctionNorms.append(np.trapezoid(partBFunctionDiff**2, x))
 
         partBValueDiff = 100 * abs(A4[col] - (2*col + 1))/(2*col + 1)
         partBDifferenceValues.append(partBValueDiff)
@@ -388,5 +321,10 @@ A1, A2 = partA()
 A3, A4 = partB()
 A5, A6, A7, A8 = partC(2, .1, [0.05, -0.05])
 tols = [1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
-A9 = partD(2, tols)
 A10, A11, A12, A13 = partE(A1, A2, A3, A4)
+print(f"A2: {A2}")
+print(f"A11: {A11}")
+print(f"A6: {A6}")
+print(f"A8: {A8}")
+A9 = partD(2, tols)
+print(f"A9: {A9}")
