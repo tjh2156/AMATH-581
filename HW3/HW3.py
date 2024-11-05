@@ -149,9 +149,8 @@ def partC(L, dx, gammas):
     x = np.arange(xspan[0], xspan[1], dx)  # grid for odeint
     for gamma in gammas:
         epsilon = 0.1
-        amplitude = 1e-4
         for n in range(2): #find first 2 eigenfunctions/values
-            
+            amplitude = 1e-4
             dAmplitude = 0.01
             for j in range(100): #iterating on amplitude
                 dEpsilon = 0.2
@@ -272,8 +271,7 @@ def partD(L, tolerances):
     bdfSlope = np.polyfit(bdfStepSizes, tolerances, 1)[0]
 
     A9 = np.array([rk45Slope, rk23Slope, radauSlope, bdfSlope])
-    return A9
-    
+    return A9 
 
 def partE(A1, A2, A3, A4):
     def factorial(n):
@@ -312,8 +310,6 @@ def partE(A1, A2, A3, A4):
         partBDifferenceValues.append(partBValueDiff)
 
     return partADifferenceFunctionNorms, partADifferenceValues, partBDifferenceFunctionNorms, partBDifferenceValues
-
-
 
 
 
