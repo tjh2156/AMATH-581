@@ -8,6 +8,7 @@ from scipy.sparse import spdiags
 from scipy.sparse.linalg import bicgstab, gmres
 import time
 
+
 def matrices(L, n):
     N = n * n
     dx = L*2/n
@@ -55,6 +56,41 @@ def matrices(L, n):
     firstDegreeY /= 2*dx
 
     return secondDegreeXY, firstDegreeX, firstDegreeY
+
+def secondXY_sparse_modified(L, n):
+    N = n * n
+    dx = L*2/n
+
+    e0 = np.zeros((N, 1))  # vector of zeros
+    e1 = np.ones((N, 1))   # vector of ones
+    e2 = np.copy(e1)    # copy the one vector
+    e4 = np.copy(e0)    # copy the zero vector
+
+    for j in range(1, n+1):
+        e2[n*j-1] = 0  # overwrite every m^th value with zero
+        e4[n*j-1] = 1  # overwirte every m^th value with one
+
+    # Shift to correct positions
+    e3 = np.zeros_like(e2)
+    e3[1:N] = e2[0:N-1]
+    e3[0] = e2[N-1]
+
+    e5 = np.zeros_like(e4)
+    e5[1:N] = e4[0:N-1]
+    e5[0] = e4[N-1]
+
+    center = np.copy(e1)
+    center[0,0] /= 2 # ****REMOVE THIS FOR BASE MATRIX*****
+
+    # Place diagonal elements
+    diagonals = [e1.flatten(), e1.flatten(), e5.flatten(), 
+                e2.flatten(), -4 * center.flatten(), e3.flatten(), 
+                e4.flatten(), e1.flatten(), e1.flatten()]
+    offsets = [-(N-n), -n, -n+1, -1, 0, 1, n-1, n, (N-n)]
+
+    secondDegreeXY = spdiags(diagonals, offsets, N, N).toarray()/dx**2
+
+    return secondDegreeXY
 
 def partA():
     # Define parameters
@@ -133,6 +169,8 @@ def partB():
     secondXY, firstX, firstY = matrices(Lx/2, nx)
     secondXY[0,0] /= 2
 
+    secondXY_sparse = secondXY_sparse_modified(Lx/2, nx)
+
     P, L, U = lu(secondXY)
 
     # Define spatial domain and initial conditions
@@ -144,7 +182,7 @@ def partB():
     w = 1 * np.exp(0.05 * -Y**2 - X**2) # Initialize as complex
 
     # Define the ODE system
-    def spc_rhs(t, w, nu, P, L, U, secondXY, firstX, firstY, flag):
+    def spc_rhs(t, w, nu, P, L, U, secondXY, firstX, firstY, secondXY_sparse, flag):
         
         if flag == "A/b":
             psi = solve(secondXY, w)
@@ -153,9 +191,9 @@ def partB():
             y = solve_triangular(L, Pb, lower=True)
             psi = solve_triangular(U, y)
         elif flag == "BICGSTAB":
-            psi, _ = (bicgstab(secondXY, w, atol = 1e-4, rtol = 1e-4))
+            psi, _ = (bicgstab(secondXY_sparse, w, atol = 1e-4, rtol = 1e-4))
         elif flag == "GMRES":
-            psi, _ = (gmres(secondXY, w, atol=1e-4, rtol=1e-4))
+            psi, _ = (gmres(secondXY_sparse, w, atol=1e-4, rtol=1e-4))
         else:
             raise Exception(f"Flag not recognized: {flag}")
 
@@ -175,10 +213,10 @@ def partB():
     A2 = None
     A3 = None
     wt0 = w.reshape(N)
-    #timing in seconds:  1.90        26.90    57.89      870.80
+    #timing in seconds:  1.13        16.64    21.49      343.97
     for flag in ['LU Decomposition', "A/b", "BICGSTAB", "GMRES"]:
         start_time = time.time()
-        sol = solve_ivp(spc_rhs, [0, 4], wt0, t_eval = tspan, method='RK45', args=(nu, P, L, U, secondXY, firstX, firstY, flag))
+        sol = solve_ivp(spc_rhs, [0, 4], wt0, t_eval = tspan, method='RK45', args=(nu, P, L, U, secondXY, firstX, firstY, secondXY_sparse, flag))
         end_time = time.time()
         print(f"Elapsed time for {flag}: {(end_time - start_time): .2f} seconds")
         wtsol = sol.y
@@ -204,7 +242,7 @@ def partB():
 
 def partC():
     # Define parameters
-    tspan = np.arange(0, 30.5, .5)
+    tspan = np.arange(0, 45.5, .5)
     nu = 0.001
     Lx, Ly = 20, 20
     nx, ny = 128, 128
@@ -219,8 +257,11 @@ def partC():
     y2 = np.linspace(-Ly/2, Ly/2, ny + 1)
     y = y2[:ny]
     X, Y = np.meshgrid(x, y)
-    w = 1 * np.exp(0.05 * -Y**2 - (X+1)**2) # Initialize as complex
-    w -= 1 * np.exp(0.05 * -Y**2 - (X-1)**2)
+    w = 1 * np.exp(0.05 * -(Y+2)**2 - (X+3)**2) # Left pair
+    w += 1 * np.exp(0.05 * -(Y-2)**2 - (X+3)**2)
+    
+    w -= 1 * np.exp(0.05 * -(Y+2)**2 - (X-3)**2) # Right pair
+    w -= 1 * np.exp(0.05 * -(Y-2)**2 - (X-3)**2)
 
     # Define spectral k values
     kx = (2 * np.pi / Lx) * np.concatenate((np.arange(0, nx/2), np.arange(-nx/2, 0)))
@@ -251,7 +292,7 @@ def partC():
     # Solve the ODE and plot the results
     wt0 = w.reshape(N)
     start_time = time.time()
-    sol = solve_ivp(spc_rhs, [0, 30], wt0, t_eval = tspan, method='RK45', args=(nx, ny, N, K, nu, secondXY, firstX, firstY))
+    sol = solve_ivp(spc_rhs, [0, 45], wt0, t_eval = tspan, method='RK45', args=(nx, ny, N, K, nu, secondXY, firstX, firstY))
     end_time = time.time()
     print(f"Elapsed time for FFT: {(end_time - start_time): .2f} seconds")
     wtsol = sol.y
