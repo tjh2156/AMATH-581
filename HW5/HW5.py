@@ -228,11 +228,12 @@ def partB():
     A2 = None
     A3 = None
     wt0 = w.reshape(N)
-    #['LU Decomposition', "A/b", "BICGSTAB", "GMRES"]
-    #timing in seconds:  1.13        16.64    21.49      343.97
+    
     residualsDict = {"BICGSTAB" : [],
                       "GMRES" : []}
-    for flag in ["BICGSTAB", "GMRES"]:
+
+    #keys: ['LU Decomposition', "A/b", "BICGSTAB", "GMRES"]
+    for flag in ['LU Decomposition', "A/b", "BICGSTAB", "GMRES"]:
         print(f"Solving {flag}")
         start_time = time.time()
         sol = solve_ivp(spc_rhs, [0, 4], wt0, t_eval = tspan, method='RK45', args=(nu, P, L, U, secondXY, firstX, firstY, secondXY_sparse, flag))
