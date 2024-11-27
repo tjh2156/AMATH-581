@@ -158,6 +158,19 @@ def partA():
     return wtsol
 
 def partB():
+    global residuals 
+    residuals = np.array([])
+    def callbackBICGSTAB(args):
+        global residuals 
+        if len(residuals) == 0:
+            residuals = args
+        else:
+            residuals = np.vstack([residuals, args])
+    
+    def callbackGMRES(args):
+        global residuals 
+        residuals = np.append(residuals, args)
+
    # Define parameters
     tspan = np.arange(0, 4.5, .5)
     nu = 0.001
@@ -166,12 +179,14 @@ def partB():
     N = nx * ny
 
     #Generate derivative matrices
+    print("Generating matrices")
     secondXY, firstX, firstY = matrices(Lx/2, nx)
     secondXY[0,0] /= 2
 
     secondXY_sparse = secondXY_sparse_modified(Lx/2, nx)
 
     P, L, U = lu(secondXY)
+    print("Complete")
 
     # Define spatial domain and initial conditions
     x2 = np.linspace(-Lx/2, Lx/2, nx + 1)
@@ -191,9 +206,9 @@ def partB():
             y = solve_triangular(L, Pb, lower=True)
             psi = solve_triangular(U, y)
         elif flag == "BICGSTAB":
-            psi, _ = (bicgstab(secondXY_sparse, w, atol = 1e-4, rtol = 1e-4))
+            psi, _ = (bicgstab(secondXY_sparse, w, atol = 1e-4, rtol = 1e-4, callback=callbackBICGSTAB))
         elif flag == "GMRES":
-            psi, _ = (gmres(secondXY_sparse, w, atol=1e-4, rtol=1e-4))
+            psi, _ = (gmres(secondXY_sparse, w, atol=1e-4, rtol=1e-4, callback=callbackGMRES))
         else:
             raise Exception(f"Flag not recognized: {flag}")
 
@@ -213,12 +228,20 @@ def partB():
     A2 = None
     A3 = None
     wt0 = w.reshape(N)
+    #['LU Decomposition', "A/b", "BICGSTAB", "GMRES"]
     #timing in seconds:  1.13        16.64    21.49      343.97
-    for flag in ['LU Decomposition', "A/b", "BICGSTAB", "GMRES"]:
+    residualsDict = {"BICGSTAB" : [],
+                      "GMRES" : []}
+    for flag in ["BICGSTAB", "GMRES"]:
+        print(f"Solving {flag}")
         start_time = time.time()
         sol = solve_ivp(spc_rhs, [0, 4], wt0, t_eval = tspan, method='RK45', args=(nu, P, L, U, secondXY, firstX, firstY, secondXY_sparse, flag))
         end_time = time.time()
         print(f"Elapsed time for {flag}: {(end_time - start_time): .2f} seconds")
+        print(f"Residuals shape: {residuals.shape}")
+        if len(residuals) != 0:
+            residualsDict[flag] = residuals
+            residuals = np.array([])
         wtsol = sol.y
 
         if flag == "LU Decomposition":
@@ -237,7 +260,7 @@ def partB():
             plt.show()
             
 
-    return A2, A3
+    return A2, A3, residualsDict
 
 
 def partC():
@@ -375,9 +398,9 @@ def partD():
 
 # A1 = partA()
 
-# A2, A3 = partB()
+A2, A3, residualsDict = partB()
 
 
 # partD()
 
-partC()
+# partC()
