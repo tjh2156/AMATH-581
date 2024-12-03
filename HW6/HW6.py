@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.integrate import solve_ivp
-from scipy.sparse import spdiags
-from scipy.fftpack import fft2
+from scipy.fftpack import fft2, ifft2
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 def chebychev(N):
     if N == 0:
@@ -81,13 +81,27 @@ def partA():
         return np.concatenate((u_t, v_t))
     
     params = (beta, D1, D2, nx, ny, N)
-    sol = solve_ivp(diffusion_rhs, [tspan[0], tspan[-1]], y0, method="RK45", args=params, t_eval=tspan)
-    A1 = sol.y
+    sol = solve_ivp(diffusion_rhs, [tspan[0], tspan[-1]], y0, t_eval=tspan, method="RK45", args=params)
+    uvsol = sol.y
+    print(uvsol.shape)
+    print(f"Status: {sol.status}")
 
-    A1_plot = np.real(A1[:N]).reshape(nx, ny)
+    A1_plot = np.real(ifft2(uvsol[:N])).reshape(nx, ny)
     plt.pcolor(x, y, A1_plot, shading='auto')
     plt.colorbar()
     plt.show()
+
+    fig, ax = plt.subplots()
+    def animation_update(frame):
+        print(f"frame: {frame}")
+        w = np.real(ifft2(A1[:N, frame]).reshape((nx, ny)))
+        ax.pcolor(x, y, w, shading='auto')
+        ax.title.set_text(f'Time: {round(tspan[frame],2)}')
+
+    print(f"Total frames: {len(tspan)}")
+    ani = FuncAnimation(fig, animation_update, frames=len(tspan), interval=500, repeat=False)
+    ani.save("opposite_charge_collision.gif", dpi=300, writer=PillowWriter(fps=10))
+
 
 
 partA()
