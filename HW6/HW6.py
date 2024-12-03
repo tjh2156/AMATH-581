@@ -43,7 +43,7 @@ def partA():
 
     uFFT = fft2(u).flatten()
     vFFT = fft2(v).flatten()
-    y0 = np.concatenate((uFFT, vFFT))
+    y0 = np.hstack((uFFT, vFFT))
 
     # Define spectral k values
     kx = (2 * np.pi / Lx) * np.concatenate((np.arange(0, nx/2), np.arange(-nx/2, 0)))
@@ -55,53 +55,58 @@ def partA():
 
     def diffusion_rhs(t, y, beta, D1, D2, nx, ny, N):
         uFFT = y[:N]
-        vFFT = y[N:2*N]
+        vFFT = y[N:]
 
         # Reshape u and v
         uFFT = uFFT.reshape((nx, ny))
         vFFT = vFFT.reshape((nx, ny))
-        u = np.real(uFFT)
-        v = np.real(vFFT)
+        u_t = ifft2(uFFT)
+        v_t = ifft2(vFFT)
 
         # Compute Laplacian
-        uLaplacian = -(KX**2) * u - (KY**2) * u
-        vLaplacian = -(KX**2) * v - (KY**2) * v
+        uLaplacian = K*uFFT
+        vLaplacian = K*vFFT
 
         # Define A, lamda function, and omega function
-        Asquared = (u**2 + v**2)**2
+        Asquared = (u_t**2 + v_t**2)**2
         lam = 1 - Asquared
         omega = -beta * Asquared
 
         # Compute time derivatives
-        u_t = fft2(lam * u) - fft2(omega * v) + D1 * uLaplacian
-        v_t = fft2(omega * u) + fft2(lam * v) + D2 * vLaplacian
-        u_t = u_t.reshape(N)
-        v_t = v_t.reshape(N)
+        uRHS = fft2(lam * u_t - omega * v_t) - D1 * uLaplacian
+        vRHS = fft2(omega * u_t + lam * v_t) - D2 * vLaplacian
+        uRHS = uRHS.reshape(N)
+        vRHS = vRHS.reshape(N)
 
-        return np.concatenate((u_t, v_t))
+        return np.hstack((uRHS, vRHS))
     
     params = (beta, D1, D2, nx, ny, N)
     sol = solve_ivp(diffusion_rhs, [tspan[0], tspan[-1]], y0, t_eval=tspan, method="RK45", args=params)
     uvsol = sol.y
     print(uvsol.shape)
     print(f"Status: {sol.status}")
+    print(f"Message: {sol.message}")
+    print(f"first val: {uvsol[0,0]}")
 
-    A1_plot = np.real(ifft2(uvsol[:N])).reshape(nx, ny)
-    plt.pcolor(x, y, A1_plot, shading='auto')
-    plt.colorbar()
-    plt.show()
+
+    if (sol.status == -1):
+        exit(0)
 
     fig, ax = plt.subplots()
     def animation_update(frame):
         print(f"frame: {frame}")
-        w = np.real(ifft2(A1[:N, frame]).reshape((nx, ny)))
+        w = np.real(ifft2(uvsol[:N, frame].reshape((nx, ny))))
         ax.pcolor(x, y, w, shading='auto')
         ax.title.set_text(f'Time: {round(tspan[frame],2)}')
 
     print(f"Total frames: {len(tspan)}")
     ani = FuncAnimation(fig, animation_update, frames=len(tspan), interval=500, repeat=False)
-    ani.save("opposite_charge_collision.gif", dpi=300, writer=PillowWriter(fps=10))
+    ani.save("part_a_movie.gif", dpi=300, writer=PillowWriter(fps=10))
 
+    return uvsol
 
+def partB():
+    N = 30
+    D, x = chebychev(N)
 
-partA()
+A1 = partA()
